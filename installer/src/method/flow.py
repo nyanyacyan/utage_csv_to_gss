@@ -35,7 +35,7 @@ from method.step_delivery_flow import StepDeliveryFlow
 from method.auto_reply import AutoReplyFlow
 
 # const
-from method.const_element import GssInfo, LoginInfo, ErrCommentInfo, PopUpComment, Post
+from method.const_element import GssInfo, LoginInfo, ErrCommentInfo, PopUpComment, Element
 
 deco = Decorators()
 
@@ -82,13 +82,35 @@ class FlowProcess:
 
             self.logger.debug(f'DataFrame: {df_filtered.head()}')
 
+            # 上記URLからWorksheetを取得
+            existing_titles = self.gss_read._sort_worksheet(gss_info=self.const_gss_info)
+
+            # 取得シートのnameの全リスト出力
+            name_list = df_filtered[self.const_gss_info["NAME"]].tolist()
+
+            # 現Worksheetに取得シートのnameに記載あるリストと突合
+            diff_name_list = [name for name in name_list if name not in existing_titles]
+            self.logger.info(f'作成するWorksheetのリスト: {diff_name_list}')
+
+            # なければ作成→ABCのcolumnは指定
+            if diff_name_list:
+                for name in diff_name_list:
+                    self.gss_write._create_worksheet_add_col(gss_info=self.const_gss_info, title_name=name)
+
+            else:
+                self.logger.info('追加するWorksheetはありません')
+
+            all_worksheet = existing_titles + diff_name_list
+
+            self.logger.info(f'全Worksheetリスト: {all_worksheet}')
+
             # 並列処理
             with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
                 futures = []
 
                 for i, row in df_filtered.iterrows():
                     row_num = i + 1
-                    get_gss_row_dict = row.to_dict()
+                    get_gss_row_dict = row.to_dict()  # ここにgss情報
 
                     # 完了通知column名
                     complete_datetime_col_name = self.const_gss_info["POST_COMPLETE_DATE"]
@@ -149,14 +171,15 @@ class SingleProcess:
     def __init__(self):
         self.getLogger = Logger()
         self.logger = self.getLogger.getLogger()
-        self.timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
+        self.timestamp = datetime.now()
+        self.date_only_stamp = self.timestamp.date()
 
         # const
-        self.const_gss_info = GssInfo.LGRAM.value
-        self.const_login_info = LoginInfo.LGRAM.value
-        self.const_post = Post.LGRAM.value
-        self.const_err_cmt_dict = ErrCommentInfo.LGRAM.value
-        self.popup_cmt = PopUpComment.LGRAM.value
+        self.const_gss_info = GssInfo.UTAGE.value
+        self.const_login_info = LoginInfo.UTAGE.value
+        self.const_element = Element.UTAGE.value
+        self.const_err_cmt_dict = ErrCommentInfo.UTAGE.value
+        self.popup_cmt = PopUpComment.UTAGE.value
 
 # **********************************************************************************
     # ----------------------------------------------------------------------------------
@@ -183,64 +206,72 @@ class SingleProcess:
             self.popup = Popup()
             self.click_element = ClickElement(chrome=self.chrome)
 
-            # 各Flow
-            self.prepare_flow = PrepareFlow(chrome=self.chrome)
-            self.auto_post_flow = AutoPostFlow(chrome=self.chrome)
-            self.tag_management_flow = TagManagementFlow(chrome=self.chrome)
-            self.step_delivery_flow = StepDeliveryFlow(chrome=self.chrome)
-            self.auto_reply_flow = AutoReplyFlow(self.chrome)
+            # URLのアクセス→ID入力→Passの入力→ログイン
+            self.login.flow_login_id_input_gui( login_info=login_info, id_text=gss_row_data[self.const_gss_info["ID"]], pass_text=gss_row_data[self.const_gss_info["PASSWORD"]], gss_info=gss_info, err_datetime_cell=err_datetime_cell, err_cmt_cell=err_cmt_cell )
 
-            # ✅ ここから通常の処理
-            image_path, movie_path = self.prepare_flow.prepare_process(
-                gss_row_data=gss_row_data, gss_info=gss_info, err_datetime_cell=err_datetime_cell, err_cmt_cell=err_cmt_cell
-            )
+            # 【絞り込み条件】指定した条件に該当する読者を表示をクリック
+            self.click_element.clickElement(value=self.const_element["MATCH_RULES"])
+            self.logger.warning(f'{self.__class__.__name__} 指定した条件に該当する読者を表示をクリック: 実施済み')
+            self.selenium._random_sleep()
 
-            self.login.flow_login_id_input_gui(
-                login_info=login_info, id_text=gss_row_data[self.const_gss_info["ID"]], pass_text=gss_row_data[self.const_gss_info["PASSWORD"]], gss_info=gss_info, err_datetime_cell=err_datetime_cell, err_cmt_cell=err_cmt_cell
-            )
+            # ドロップダウン → 配信基準日時（日付）→
+            self.get_element._select_element(by=self.const_element["MATCH_CHOICE_BY"], value=self.const_element["MATCH_CHOICE_VOL"], select_value=self.const_element["DELIVERY_SETTING_SELECT_OPTION_VALUE"])
+            self.logger.warning(f'{self.__class__.__name__} 開始/再開を選択（ドロップダウン）: 実施済み')
+            self.selenium._random_sleep()
 
-            # アカウントをクリック
-            self.click_element.clickElement( by=self.const_post["SELECT_ACCOUNT_BY"], value=self.const_post["SELECT_ACCOUNT_VALUE"] )
-            self.logger.warning(f'{self.__class__.__name__} アカウント名をクリック: 実施済み')
-            self.selenium._random_sleep(3, 5)
+            # ドロップダウン 次と完全一致
+            self.get_element._select_element(by=self.const_element["DELIVERY_SETTING_SELECT_BY"], value=self.const_auto_reply["DELIVERY_SETTING_SELECT_VALUE"], select_value=self.const_element["MATCH_CHOICE_SELECT_VOL"])
+            self.logger.warning(f'{self.__class__.__name__} 開始/再開を選択（ドロップダウン）: 実施済み')
+            self.selenium._random_sleep()
 
-            try:
-                # Facebookのアカウント確認がはいったことを想定
-                facebook_login = self.get_element.getElement(value=self.const_post["IF_FACEBOOK_VALUE"])
+            # 前日を入力 →
+            date_data = self.date_only_stamp
+            fixed_date_data = "00" + date_data
+            self.logger.debug(f'fixed_date_data: {fixed_date_data}')
+            self.click_element.clickClearInput(value=self.const_element["DATE_INPUT_VOL"], inputText=fixed_date_data)
+            self.logger.warning(f'{self.__class__.__name__} 日時の入力: 実施済み')
+            self.selenium._random_sleep()
 
-                if facebook_login:
-                    facebook_login.click()
-                    facebook_comment = "Facebookのログインができておりません。"
-                    self.logger.error(f'{self.__class__.__name__} facebook_comment: {facebook_comment}')
-                    # エラータイムスタンプ
-                    self.gss_write.write_data_by_url(gss_info=gss_info, cell=err_datetime_cell, input_data=self.timestamp)
+            # 絞り込みをクリック →
+            self.click_element.clickElement(value=self.const_element["SORTING_VOL"])
+            self.logger.warning(f'{self.__class__.__name__} 絞り込みをクリック: 実施済み')
+            self.selenium._random_sleep()
 
-                    # エラーコメント
-                    self.gss_write.write_data_by_url(gss_info=gss_info, cell=err_cmt_cell, input_data=facebook_comment)
-                    raise Exception(facebook_comment)
+            # CSV出力をクリック →
+            self.click_element.clickElement(value=self.const_element["CSV_OUTPUT_VOL"])
+            self.logger.warning(f'{self.__class__.__name__} CSV出力をクリック: 実施済み')
+            self.selenium._random_sleep()
 
-            except ElementNotInteractableException:
-                self.logger.info(f'Facebookはログイン状態')
+            # CSV移動
 
-            # 自動投稿
-            self.auto_post_flow.process(gss_row_data, gss_info, err_datetime_cell, err_cmt_cell)
-            self.tag_management_flow.process(gss_info, err_datetime_cell, err_cmt_cell)
 
-            # ステップ配信
-            self.step_delivery_flow.first_process(gss_row_data, gss_info, err_datetime_cell, err_cmt_cell)
-            self.step_delivery_flow.second_process(gss_row_data, gss_info, err_datetime_cell, err_cmt_cell)
-            self.step_delivery_flow.third_process(gss_row_data, gss_info, err_datetime_cell, err_cmt_cell)
+            # GSSへアクセス→gss_row_dataにあるURLへアクセス
 
-            # 自動応答
-            result_bool = self.auto_reply_flow.process(gss_row_data, gss_info, err_datetime_cell, err_cmt_cell)
 
+            # 対象のWorksheetから友達IDのリスト作成
+
+            # CSVの読み込み
+
+            # CSVファイルから友達IDのリストを生成
+
+            # 既存データとCSV友達IDのリスト突合→差異を抽出
+
+                # LINE友達IDの入力
+
+                # LINE登録名を入力
+
+                # 登録日にタイムスタンプを入力
+
+
+
+            # 実施を成功欄に日付を書込をする
             if result_bool:
                 self.gss_write.write_data_by_url(gss_info, complete_cell, input_data=str(self.timestamp))
 
             self.logger.info(f'{gss_row_data[self.const_gss_info["NAME"]]}: 処理完了')
 
         except TimeoutError:
-            timeout_comment = "ログインでreCAPTCHA処理にが長引いてしまったためエラー"
+            timeout_comment = "タイムエラー：ログインに失敗している可能性があります。"
             self.logger.error(f'{self.__class__.__name__} {timeout_comment}')
             # エラータイムスタンプ
             self.gss_write.write_data_by_url(gss_info=gss_info, cell=err_datetime_cell, input_data=self.timestamp)
@@ -249,11 +280,17 @@ class SingleProcess:
             self.gss_write.write_data_by_url(gss_info=gss_info, cell=err_cmt_cell, input_data=timeout_comment)
 
         except Exception as e:
-            self.logger.error(f'{self.__class__.__name__} エラー: {e}')
+            timeout_comment = "ログインでreCAPTCHA処理にが長引いてしまったためエラー"
+            self.logger.error(f'{self.__class__.__name__} {timeout_comment}')
+            # エラータイムスタンプ
+            self.gss_write.write_data_by_url(gss_info=gss_info, cell=err_datetime_cell, input_data=self.timestamp)
+
+            # エラーコメント
+            self.gss_write.write_data_by_url(gss_info=gss_info, cell=err_cmt_cell, input_data=timeout_comment)
 
         finally:
-            self._delete_file(image_path)
-            self._delete_file(movie_path)
+            self._delete_file(image_path)  # CSVファイルを消去
+
             # ✅ Chrome を終了
             self.chrome.quit()
 

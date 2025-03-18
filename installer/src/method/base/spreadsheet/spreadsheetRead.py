@@ -259,32 +259,24 @@ class GetDataGSSAPI:
     # スプシにあるWorksheetのリストを返す
     # GUIに返す
 
-    def _get_all_worksheet(self, gss_info: Dict, sort_word_list: List):
+    def _get_all_worksheet(self, gss_info: Dict):
         client = self.client(jsonKeyName=gss_info["JSON_KEY_NAME"])
 
         # 対象のスプシを開く
-        spreadsheet = client.open_by_key(gss_info["spreadsheetId"])
+        spreadsheet = client.open_by_url(gss_info["SHEET_URL"])
 
         # すべてのWorksheetオブジェクトを抽出
         all_worksheet = spreadsheet.worksheets()
         self.logger.debug(f'all_worksheet: {all_worksheet}')
 
-        # すべてのワークシートのリスト
-        worksheet_title_list = [
-            ws.title
-            for ws in all_worksheet
-            if any (sort_word in ws.title for sort_word in sort_word_list)
-        ]
-        self.logger.debug(f"ワークシート全データ: {worksheet_title_list}")
-
-        return worksheet_title_list
+        return all_worksheet
 
     # ----------------------------------------------------------------------------------
     # スプシにあるWorksheetのリストを返す
     # GUIに返す
 
-    def _get_all_worksheet_to_gui(self, gui_info: Dict, sheet_url: str, sort_word_list: List):
-        client = self.client(jsonKeyName=gui_info["JSON_KEY_NAME"])
+    def _sort_worksheet(self, gss_info: Dict, sheet_url: str, sort_word_list: List):
+        client = self.client(jsonKeyName=gss_info["JSON_KEY_NAME"])
 
         # 対象のスプシを開く
         spreadsheet = client.open_by_url(sheet_url)
@@ -294,11 +286,7 @@ class GetDataGSSAPI:
         self.logger.debug(f'all_worksheet: {all_worksheet}')
 
         # すべてのワークシートのリスト
-        worksheet_title_list = [
-            ws.title
-            for ws in all_worksheet
-            if any (sort_word in ws.title for sort_word in sort_word_list)
-        ]
+        worksheet_title_list = [ ws.title for ws in all_worksheet if any (sort_word in ws.title for sort_word in sort_word_list) ]
         self.logger.debug(f"ワークシート全データ: {worksheet_title_list}")
 
         return worksheet_title_list

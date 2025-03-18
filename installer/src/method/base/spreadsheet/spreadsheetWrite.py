@@ -6,7 +6,7 @@
 # ----------------------------------------------------------------------------------
 import gspread, time
 import pandas as pd
-from typing import Any, Dict
+from typing import Any, Dict, List
 from datetime import datetime
 from oauth2client.service_account import ServiceAccountCredentials
 from google.oauth2.service_account import Credentials
@@ -76,6 +76,27 @@ class GssWrite:
         raise TimeoutError(f"最大リトライ回数 {max_count} 回を超過しました。")
 
     ####################################################################################
+    # ----------------------------------------------------------------------------------
+    # Worksheetの作成
+
+    def _create_worksheet_add_col(self, gss_info: Dict, title_name: str):
+        try:
+            client = self.client(jsonKeyName=gss_info["JSON_KEY_NAME"])
+            select_gss = client.open_by_url(gss_info["SHEET_URL"])
+
+            # Worksheetを作成する
+            new_ws = select_gss.add_worksheet(title=title_name)
+            self.logger.info(f'{title_name} Worksheetを作成しました')
+
+            # columnを追加する
+            new_ws.append_row(gss_info["ADD_COL"])
+            self.logger.info(f'{title_name} {gss_info["ADD_COL"]} columnを追加')
+
+        except Exception as e:
+            self.logger.warning(f'{self.__class__.__name__} Worksheetを作成している際にエラーが発生: {e}')
+
+    # ----------------------------------------------------------------------------------
+
     # ----------------------------------------------------------------------------------
     # スプシの認証プロパティ
 
@@ -506,6 +527,12 @@ class GssWrite:
         except Exception as e:
             self.logger.error(f"_grid_input: 処理中にエラーが発生: {e}")
             raise
+
+    # ----------------------------------------------------------------------------------
+
+
+
+    # ----------------------------------------------------------------------------------
 
 
 # **********************************************************************************
