@@ -1,6 +1,6 @@
 # coding: utf-8
 # $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-# export PYTHONPATH="/Users/nyanyacyan/Desktop/project_file/LGRAM_auto_processer/installer/src"
+# export PYTHONPATH="/Users/nyanyacyan/Desktop/project_file/utage_csv_to_drive/installer/src"
 
 # $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 # import
@@ -28,13 +28,6 @@ from method.base.selenium.loginWithId import SingleSiteIDLogin
 from method.base.utils.popup import Popup
 from method.base.selenium.click_element import ClickElement
 from method.base.utils.file_move import FileMove
-
-# flow
-from method.prepare_flow import PrepareFlow
-from method.auto_post_flow import AutoPostFlow
-from method.auto_tag_management import TagManagementFlow
-from method.step_delivery_flow import StepDeliveryFlow
-from method.auto_reply import AutoReplyFlow
 
 # const
 from method.const_element import GssInfo, LoginInfo, ErrCommentInfo, PopUpComment, Element
@@ -65,17 +58,17 @@ class FlowProcess:
         self.timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
 
         # const
-        self.const_gss_info = GssInfo.LGRAM.value
-        self.const_login_info = LoginInfo.LGRAM.value
-        self.const_err_cmt_dict = ErrCommentInfo.LGRAM.value
-        self.popup_cmt = PopUpComment.LGRAM.value
+        self.const_gss_info = GssInfo.UTAGE.value
+        self.const_login_info = LoginInfo.UTAGE.value
+        self.const_err_cmt_dict = ErrCommentInfo.UTAGE.value
+        self.popup_cmt = PopUpComment.UTAGE.value
 
 
     ####################################################################################
     # ----------------------------------------------------------------------------------
     # 各メソッドをまとめる
 
-    def parallel_process(self, max_workers: int = 3):
+    def parallel_process(self, max_workers: int = 1):
         try:
             # スプシにアクセス（Worksheet指定）
             df = self.gss_read._get_df_gss_url(gss_info=self.const_gss_info)
@@ -84,10 +77,11 @@ class FlowProcess:
             self.logger.debug(f'DataFrame: {df_filtered.head()}')
 
             # 上記URLからWorksheetを取得
-            existing_titles = self.gss_read._sort_worksheet(gss_info=self.const_gss_info)
+            existing_titles = self.gss_read._get_all_worksheet(gss_info=self.const_gss_info)
 
             # 取得シートのnameの全リスト出力
             name_list = df_filtered[self.const_gss_info["NAME"]].tolist()
+            self.logger.debug(f'name_list: {name_list}')
 
             # 現Worksheetに取得シートのnameに記載あるリストと突合
             diff_name_list = [name for name in name_list if name not in existing_titles]

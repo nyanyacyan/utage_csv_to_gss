@@ -2,9 +2,9 @@
 
 # $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 # import
-import os, shutil, path
+import os, shutil
 from datetime import datetime
-
+from pathlib import Path
 
 
 # 自作モジュール

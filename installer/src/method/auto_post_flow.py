@@ -33,7 +33,7 @@ from method.base.utils.popup import Popup
 
 
 # const
-from method.const_element import GssInfo, LoginInfo, ErrCommentInfo, PopUpComment, Post
+from method.const_element import GssInfo, LoginInfo, ErrCommentInfo, PopUpComment
 
 deco = Decorators()
 

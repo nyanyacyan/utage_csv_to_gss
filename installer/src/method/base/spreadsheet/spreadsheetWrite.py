@@ -85,7 +85,7 @@ class GssWrite:
             select_gss = client.open_by_url(gss_info["SHEET_URL"])
 
             # Worksheetを作成する
-            new_ws = select_gss.add_worksheet(title=title_name)
+            new_ws = select_gss.add_worksheet(title=title_name, rows=1000, cols=20)
             self.logger.info(f'{title_name} Worksheetを作成しました')
 
             # columnを追加する
@@ -112,7 +112,7 @@ class GssWrite:
             self.logger.warning(f'{self.__class__.__name__} Worksheetを作成している際にエラーが発生: {e}')
 
     ####################################################################################
-    # 
+    #
 
     def write_gss_base(self, gss_info: Dict, row_num: int, col_num: int, input_value: List):
         try:

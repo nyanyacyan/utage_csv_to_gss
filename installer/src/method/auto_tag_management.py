@@ -28,7 +28,7 @@ from method.base.spreadsheet.err_checker_write import GssCheckerErrWrite
 from method.base.utils.popup import Popup
 
 # const
-from method.const_element import GssInfo, LoginInfo, ErrCommentInfo, PopUpComment, StepDelivery, Post, TagManagement
+from method.const_element import GssInfo, LoginInfo, ErrCommentInfo, PopUpComment
 
 deco = Decorators()
 
