@@ -120,35 +120,15 @@ class FlowProcess:
                     err_datetime_col_name = self.const_gss_info["ERROR_DATETIME"]
                     err_cmt_col_name = self.const_gss_info["ERROR_COMMENT"]
 
-                    complete_cell = self.select_cell.get_cell_address(
-                        gss_row_dict=get_gss_row_dict,
-                        col_name=complete_datetime_col_name,
-                        row_num=row_num,
-                    )
+                    complete_cell = self.select_cell.get_cell_address( gss_row_dict=get_gss_row_dict, col_name=complete_datetime_col_name, row_num=row_num, )
 
-                    err_datetime_cell = self.select_cell.get_cell_address(
-                        gss_row_dict=get_gss_row_dict,
-                        col_name=err_datetime_col_name,
-                        row_num=row_num,
-                    )
-                    err_cmt_cell = self.select_cell.get_cell_address(
-                        gss_row_dict=get_gss_row_dict,
-                        col_name=err_cmt_col_name,
-                        row_num=row_num,
-                    )
+                    err_datetime_cell = self.select_cell.get_cell_address( gss_row_dict=get_gss_row_dict, col_name=err_datetime_col_name, row_num=row_num, )
+                    err_cmt_cell = self.select_cell.get_cell_address( gss_row_dict=get_gss_row_dict, col_name=err_cmt_col_name, row_num=row_num, )
 
                     # `SingleProcess` を **新しく作成**
                     single_flow_instance = SingleProcess()
 
-                    future = executor.submit(
-                        single_flow_instance._single_process,
-                        gss_row_data=get_gss_row_dict,
-                        gss_info=self.const_gss_info,
-                        complete_cell=complete_cell,
-                        err_datetime_cell=err_datetime_cell,
-                        err_cmt_cell=err_cmt_cell,
-                        login_info=self.const_login_info,
-                    )
+                    future = executor.submit( single_flow_instance._single_process, gss_row_data=get_gss_row_dict, gss_info=self.const_gss_info, complete_cell=complete_cell, err_datetime_cell=err_datetime_cell, err_cmt_cell=err_cmt_cell, login_info=self.const_login_info, )
 
                     futures.append(future)
 
@@ -257,19 +237,37 @@ class SingleProcess:
             gss_df = self.gss_read._get_gss_df_to_gui(gui_info=self.const_gss_info, sheet_url=self.const_gss_info["SHEET_URL"], worksheet_name=self.const_gss_info["NAME"])
             gss_names_list = gss_df[self.const_gss_info["NAME"]]
 
-            # 対象のWorksheetから友達IDのリスト作成
+            # CSVと既存との付け合せを行い差異リストを生成
             diff_name_list = [name for name in downloads_names_list if name not in gss_names_list]
 
-            # CSVファイルから友達IDのリストを生成
+            # 空白の行数
+            none_row_num = self.gss_read._get_input_row_num(df=gss_df)
 
-            # 既存データとCSV友達IDのリスト突合→差異を抽出
+            # データフレームをフィルターかける（書き込むデータ飲みにする）
+            df_filtered =
+
+            # 行ごとに処理
+            for i, row in df_filtered.iterrows():
+                row_num = none_row_num + i + 1
+                get_gss_row_dict = row.to_dict()
+
+                # LINE友達IDのcell
+                friend_id_cell = self.select_cell.get_cell_address( gss_row_dict=get_gss_row_dict, col_name=complete_datetime_col_name, row_num=row_num, )
+
+                # LINE登録名のcell
+                line_name_cell = self.select_cell.get_cell_address( gss_row_dict=get_gss_row_dict, col_name=err_datetime_col_name, row_num=row_num, )
+
+                # 登録日にタイムスタンプのcell
+                date_cell = self.select_cell.get_cell_address( gss_row_dict=get_gss_row_dict, col_name=err_cmt_col_name, row_num=row_num, )
 
                 # LINE友達IDの入力
+                self.gss_write.write_data_by_url(gss_info=self.const_gss_info, cell=friend_id_cell, input_data=get_gss_row_dict[""])
 
                 # LINE登録名を入力
+                self.gss_write.write_data_by_url(gss_info=self.const_gss_info, cell=line_name_cell, input_data=get_gss_row_dict[""])
 
                 # 登録日にタイムスタンプを入力
-
+                self.gss_write.write_data_by_url(gss_info=self.const_gss_info, cell=date_cell, input_data=self.date_only_stamp)
 
 
             # 実施を成功欄に日付を書込をする
@@ -297,7 +295,7 @@ class SingleProcess:
             self.gss_write.write_data_by_url(gss_info=gss_info, cell=err_cmt_cell, input_data=timeout_comment)
 
         finally:
-            self._delete_file(image_path)  # CSVファイルを消去
+            self._delete_file(csv_path)  # CSVファイルを消去
 
             # ✅ Chrome を終了
             self.chrome.quit()

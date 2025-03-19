@@ -356,6 +356,21 @@ class GetDataGSSAPI:
         else:
             raise ValueError(f"DataFrameがない")
 
+    # ----------------------------------------------------------------------------------
+    # 指定したcolumnが左から何番目にあるのかを算出
 
-# ----------------------------------------------------------------------------------
+    def _get_col_num(self, df: pd.DataFrame, col_name: str):
+        col_num = df.columns.get_loc(col_name) + 1  # 1始まりに補正
+        self.logger.debug(f'指定したcolumnが左から見て {col_num}つ目にある')
+        return col_num
+
+    # ----------------------------------------------------------------------------------
+    # データフレームの外（最初の空白）を算出
+
+    def _get_input_row_num(self, df: pd.DataFrame):
+        none_row_num = len(df) + 2  # 2=index + next
+        self.logger.debug(f'none_row_num: {none_row_num}')
+        return none_row_num
+
+    # ----------------------------------------------------------------------------------
 # **********************************************************************************

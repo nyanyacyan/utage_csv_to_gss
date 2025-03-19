@@ -96,7 +96,38 @@ class GssWrite:
             self.logger.warning(f'{self.__class__.__name__} Worksheetを作成している際にエラーが発生: {e}')
 
     ####################################################################################
+    # 行を指定して左から順番に値を入れる
 
+    def write_gss_base(self, gss_info: Dict, row_num: int, col_num: int, input_value: List):
+        try:
+            client = self.client(jsonKeyName=gss_info["JSON_KEY_NAME"])
+
+            # Worksheetを指定
+            select_worksheet = client.open_by_url(gss_info["SHEET_URL"]).worksheet(gss_info["WORKSHEET_NAME"])
+
+            # 書込
+            select_worksheet.update_cell(row_num, col_num, value=input_value)
+
+        except Exception as e:
+            self.logger.warning(f'{self.__class__.__name__} Worksheetを作成している際にエラーが発生: {e}')
+
+    ####################################################################################
+    # 
+
+    def write_gss_base(self, gss_info: Dict, row_num: int, col_num: int, input_value: List):
+        try:
+            client = self.client(jsonKeyName=gss_info["JSON_KEY_NAME"])
+
+            # Worksheetを指定
+            select_worksheet = client.open_by_url(gss_info["SHEET_URL"]).worksheet(gss_info["WORKSHEET_NAME"])
+
+            # 書込
+            select_worksheet.update_cell(row_num, col_num, value=input_value)
+
+        except Exception as e:
+            self.logger.warning(f'{self.__class__.__name__} Worksheetを作成している際にエラーが発生: {e}')
+
+    ####################################################################################
 
     def write_to_first_empty_row(self, gss_info: Dict, df: pd.DataFrame, col_name: str, input_value: Any):
         try:
@@ -113,22 +144,8 @@ class GssWrite:
 
     ####################################################################################
     # ----------------------------------------------------------------------------------
-    # データフレームの外（最初の空白）を算出
 
-    def _get_input_row_num(self, df: pd.DataFrame):
-        none_row_num = len(df) + 2  # 2=index + next
-        self.logger.debug(f'none_row_num: {none_row_num}')
-        return none_row_num
 
-    # ----------------------------------------------------------------------------------
-    # 指定したcolumnが左から何番目にあるのかを算出
-
-    def _get_col_num(self, df: pd.DataFrame, col_name: str):
-        col_num = df.columns.get_loc(col_name) + 1  # 1始まりに補正
-        self.logger.debug(f'指定したcolumnが左から見て {col_num}つ目にある')
-        return col_num
-
-    # ----------------------------------------------------------------------------------
 
 
     # ----------------------------------------------------------------------------------
