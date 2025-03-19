@@ -8,6 +8,7 @@ import os
 import concurrent.futures
 from typing import Dict
 from datetime import datetime
+from selenium.common.exceptions import ElementClickInterceptedException, ElementNotInteractableException, NoSuchElementException, TimeoutException, WebDriverException
 
 # 自作モジュール
 from method.base.utils.logger import Logger
@@ -25,7 +26,7 @@ from method.base.spreadsheet.err_checker_write import GssCheckerErrWrite
 from method.base.selenium.loginWithId import SingleSiteIDLogin
 from method.base.utils.popup import Popup
 from method.base.selenium.click_element import ClickElement
-from selenium.common.exceptions import ElementClickInterceptedException, ElementNotInteractableException, NoSuchElementException, TimeoutException, WebDriverException
+from method.base.utils.file_move import FileMove
 
 # flow
 from method.prepare_flow import PrepareFlow
@@ -58,7 +59,6 @@ class FlowProcess:
         self.select_cell = GssSelectCell()
         self.gss_check_err_write = GssCheckerErrWrite()
         self.popup = Popup()
-
 
 
         self.timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -205,6 +205,8 @@ class SingleProcess:
             self.gss_check_err_write = GssCheckerErrWrite()
             self.popup = Popup()
             self.click_element = ClickElement(chrome=self.chrome)
+            self.file_move = FileMove()
+
 
             # URLのアクセス→ID入力→Passの入力→ログイン
             self.login.flow_login_id_input_gui( login_info=login_info, id_text=gss_row_data[self.const_gss_info["ID"]], pass_text=gss_row_data[self.const_gss_info["PASSWORD"]], gss_info=gss_info, err_datetime_cell=err_datetime_cell, err_cmt_cell=err_cmt_cell )
@@ -243,7 +245,7 @@ class SingleProcess:
             self.selenium._random_sleep()
 
             # CSV移動
-
+            self.file_move.move_csv_dl_to_inputDir(sub_dir_name=self.const_element["CSV_OUTPUT_VOL"], file_name=gss_row_data["NAME"], extension=self.const_element["CSV_OUTPUT_VOL"])
 
             # GSSへアクセス→gss_row_dataにあるURLへアクセス
 
