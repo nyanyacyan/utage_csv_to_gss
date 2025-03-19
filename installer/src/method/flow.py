@@ -244,11 +244,12 @@ class SingleProcess:
             none_row_num = self.gss_read._get_input_row_num(df=gss_df)
 
             # データフレームをフィルターかける（書き込むデータ飲みにする）
-            df_filtered =
+            df_row_filtered = download_csv_df[download_csv_df[self.const_gss_info["NAME"]].isin(diff_name_list)]
+            df_filtered = df_row_filtered[self.const_gss_info["CHOICE_COL"]]
 
             # 行ごとに処理
             for i, row in df_filtered.iterrows():
-                row_num = none_row_num + i + 1
+                row_num = none_row_num + i
                 get_gss_row_dict = row.to_dict()
 
                 # LINE友達IDのcell

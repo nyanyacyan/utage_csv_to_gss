@@ -36,7 +36,8 @@ class GssInfo(Enum):
         "ERROR_COMMENT": "エラー理由",
 
         # 選択する
-        "TYPE_TEXT": "テキスト",
+        "CHOICE_COL": ["LINE友だちID", "LINE登録名", "登録日"],
+
         "TYPE_PANEL": "パネル",
     }
 
