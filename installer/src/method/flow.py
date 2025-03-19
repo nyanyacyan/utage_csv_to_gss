@@ -5,6 +5,7 @@
 # $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 # import
 import os
+import pandas as pd
 import concurrent.futures
 from typing import Dict
 from datetime import datetime
@@ -245,14 +246,19 @@ class SingleProcess:
             self.selenium._random_sleep()
 
             # CSV移動
-            self.file_move.move_csv_dl_to_inputDir(sub_dir_name=self.const_element["CSV_OUTPUT_VOL"], file_name=gss_row_data["NAME"], extension=self.const_element["CSV_OUTPUT_VOL"])
-
-            # GSSへアクセス→gss_row_dataにあるURLへアクセス
-
-
-            # 対象のWorksheetから友達IDのリスト作成
+            csv_path = self.file_move.move_csv_dl_to_inputDir(sub_dir_name=self.const_element["CSV_OUTPUT_VOL"], file_name=gss_row_data["NAME"], extension=self.const_element["CSV_OUTPUT_VOL"])
 
             # CSVの読み込み
+            download_csv_df = pd.read_csv(csv_path)
+            self.logger.debug(f'ダウンロードしたCSVのdf: {download_csv_df.head()}')
+            downloads_names_list = download_csv_df[self.const_gss_info["NAME"]]
+
+            # GSSへアクセス→gss_row_dataにあるURLへアクセス
+            gss_df = self.gss_read._get_gss_df_to_gui(gui_info=self.const_gss_info, sheet_url=self.const_gss_info["SHEET_URL"], worksheet_name=self.const_gss_info["NAME"])
+            gss_names_list = gss_df[self.const_gss_info["NAME"]]
+
+            # 対象のWorksheetから友達IDのリスト作成
+            diff_name_list = [name for name in downloads_names_list if name not in gss_names_list]
 
             # CSVファイルから友達IDのリストを生成
 

@@ -40,6 +40,7 @@ class FileMove:
             self.logger.debug(f'old_path: {old_path}\n old_path type: {type(old_path)}\nexists: {old_path.exists()}')
             new_path = self._result_dir_path(sub_dir_name=sub_dir_name, file_name=file_name, extension=extension)
             shutil.move(old_path, new_path)
+            return new_path
 
         except Exception as e:
             self.logger.error(f'{self.__class__.__name__}: write_csv_joint: 処理中にエラーが発生{e}')

@@ -95,7 +95,46 @@ class GssWrite:
         except Exception as e:
             self.logger.warning(f'{self.__class__.__name__} Worksheetを作成している際にエラーが発生: {e}')
 
+    ####################################################################################
+
+
+    def write_to_first_empty_row(self, gss_info: Dict, df: pd.DataFrame, col_name: str, input_value: Any):
+        try:
+            client = self.client(jsonKeyName=gss_info["JSON_KEY_NAME"])
+            select_worksheet = client.open_by_url(gss_info["SHEET_URL"]).worksheet(gss_info["WORKSHEET_NAME"])
+
+            none_row_num = self._get_input_row_num(df=df)
+            col_num = self._get_col_num(df=df, col_name=col_name)
+            select_worksheet.update_cell(none_row_num, col_num, value=input_value)
+
+        except Exception as e:
+            self.logger.warning(f'{self.__class__.__name__} Worksheetを作成している際にエラーが発生: {e}')
+
+
+    ####################################################################################
     # ----------------------------------------------------------------------------------
+    # データフレームの外（最初の空白）を算出
+
+    def _get_input_row_num(self, df: pd.DataFrame):
+        none_row_num = len(df) + 2  # 2=index + next
+        self.logger.debug(f'none_row_num: {none_row_num}')
+        return none_row_num
+
+    # ----------------------------------------------------------------------------------
+    # 指定したcolumnが左から何番目にあるのかを算出
+
+    def _get_col_num(self, df: pd.DataFrame, col_name: str):
+        col_num = df.columns.get_loc(col_name) + 1  # 1始まりに補正
+        self.logger.debug(f'指定したcolumnが左から見て {col_num}つ目にある')
+        return col_num
+
+    # ----------------------------------------------------------------------------------
+
+
+    # ----------------------------------------------------------------------------------
+
+
+
 
     # ----------------------------------------------------------------------------------
     # スプシの認証プロパティ
@@ -118,16 +157,16 @@ class GssWrite:
     # 日付とエラー内容書き込み
 
     def _err_write_to_gss(self, gss_info: Dict, err_datetime_cell: str, err_cmt_cell: str, gss_check_err_comment: str):
-            self.logger.error(f"エラー内容をスプレッドシートに書込開始\n{gss_check_err_comment}")
-            # エラーのタイムスタンプの書込
-            self.write_data_by_url(gss_info=gss_info, cell=err_datetime_cell, input_data=self.timestamp)
+        self.logger.error(f"エラー内容をスプレッドシートに書込開始\n{gss_check_err_comment}")
+        # エラーのタイムスタンプの書込
+        self.write_data_by_url(gss_info=gss_info, cell=err_datetime_cell, input_data=self.timestamp)
 
-            # エラー内容を書込
-            self.write_data_by_url(gss_info=gss_info, cell=err_cmt_cell, input_data=gss_check_err_comment)
-            self.logger.warning('エラー内容書込完了')
+        # エラー内容を書込
+        self.write_data_by_url(gss_info=gss_info, cell=err_cmt_cell, input_data=gss_check_err_comment)
+        self.logger.warning('エラー内容書込完了')
 
-            # POPUPを出す
-            self.popup.popupCommentOnly(popupTitle=self.const_err_cmt_dict["POPUP_TITLE_SHEET_INPUT_ERR"], comment=gss_check_err_comment)
+        # POPUPを出す
+        self.popup.popupCommentOnly(popupTitle=self.const_err_cmt_dict["POPUP_TITLE_SHEET_INPUT_ERR"], comment=gss_check_err_comment)
 
     # ----------------------------------------------------------------------------------
 
