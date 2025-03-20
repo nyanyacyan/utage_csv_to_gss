@@ -184,7 +184,7 @@ class SingleProcess:
 
 
             # URLのアクセス→ID入力→Passの入力→ログイン
-            self.login.flow_login_id_input_gui( login_info=login_info, id_text=gss_row_data[self.const_gss_info["ID"]], pass_text=gss_row_data[self.const_gss_info["PASSWORD"]], gss_info=gss_info, err_datetime_cell=err_datetime_cell, err_cmt_cell=err_cmt_cell )
+            self.login.flow_login_id_input_url( login_info=login_info, login_url=gss_row_data[self.const_gss_info["URL"]], id_text=gss_row_data[self.const_gss_info["ID"]], pass_text=gss_row_data[self.const_gss_info["PASSWORD"]], gss_info=gss_info, err_datetime_cell=err_datetime_cell, err_cmt_cell=err_cmt_cell )
 
             # 【絞り込み条件】指定した条件に該当する読者を表示をクリック
             self.click_element.clickElement(value=self.const_element["MATCH_RULES"])

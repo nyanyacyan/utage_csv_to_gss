@@ -25,6 +25,7 @@ class GssInfo(Enum):
         "WORKSHEET_NAME": "取得シート",
 
         # column名
+        "URL": "URL",
         "CHECK": "チェック",
         "NAME": "Name",
         "ID": "ID",
@@ -49,16 +50,14 @@ class GssInfo(Enum):
 class LoginInfo(Enum):
 
     UTAGE = {
-        "LOGIN_URL": "https://go.lgram.jp/",
-        "HOME_URL": "https://go.lgram.jp/instagram/account-list",
-        "ID_BY": "id",
-        "ID_VALUE": "email_login",
-        "PASS_BY": "id",
-        "PASS_VALUE": "password_login",
-        "BTN_BY": "id",
-        "BTN_VALUE": "btn_submit_login",
-        "LOGIN_AFTER_ELEMENT_BY": "id",
-        "LOGIN_AFTER_ELEMENT_VALUE": "show-action-profile",
+        "ID_BY": "xpath",
+        "ID_VALUE": "//input[@placeholder='メールアドレス']",
+        "PASS_BY": "xpath",
+        "PASS_VALUE": "//input[@placeholder='パスワード']",
+        "BTN_BY": "xpath",
+        "BTN_VALUE": "//button[@type='submit' and contains(@class, 'btn-info')]",
+        "LOGIN_AFTER_ELEMENT_BY": "css",
+        "LOGIN_AFTER_ELEMENT_VALUE": "button.btn.btn-success[type='submit']",
         "": "",
         "": "",
     }
