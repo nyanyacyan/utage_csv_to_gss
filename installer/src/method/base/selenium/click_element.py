@@ -23,7 +23,7 @@ from method.base.utils.popup import Popup
 from method.base.selenium.get_element import GetElement
 
 from method.base.decorators.decorators import Decorators
-from method.base.Archive.textManager import TextManager
+from method.base.utils.textManager import TextManager
 from method.base.selenium.driverDeco import ClickDeco
 from method.base.selenium.driverWait import Wait
 
