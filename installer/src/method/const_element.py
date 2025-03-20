@@ -56,8 +56,8 @@ class LoginInfo(Enum):
         "PASS_VALUE": "//input[@placeholder='パスワード']",
         "BTN_BY": "xpath",
         "BTN_VALUE": "//button[@type='submit' and contains(@class, 'btn-info')]",
-        "LOGIN_AFTER_ELEMENT_BY": "css",
-        "LOGIN_AFTER_ELEMENT_VALUE": "button.btn.btn-success[type='submit']",
+        "LOGIN_AFTER_ELEMENT_BY": "xpath",
+        "LOGIN_AFTER_ELEMENT_VALUE": "//button[@type='submit' and contains(text(), '絞り込む')]",
         "": "",
         "": "",
     }
@@ -122,10 +122,10 @@ class PopUpComment(Enum):
 class Element(Enum):
     UTAGE = {
         "MATCH_RULES_BY": "",
-        "MATCH_RULES_VOL": "",
-        "MATCH_CHOICE_BY": "",
-        "MATCH_CHOICE_VOL": "",
-        "MATCH_CHOICE_SELECT_VOL": "",
+        "MATCH_RULES_VOL": "//input[@id='has_condition2']",
+        "MATCH_CHOICE_BY": "xpath",
+        "MATCH_CHOICE_VOL": "//select[@name='condition[0][0][key]']",
+        "MATCH_CHOICE_SELECT_VOL": "base_date",
         "DATE_INPUT_BY": "",
         "DATE_INPUT_VOL": "",
         "sorting_by": "",

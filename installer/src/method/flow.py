@@ -188,12 +188,18 @@ class SingleProcess:
             self.login.flow_login_id_input_url( login_info=login_info, login_url=gss_row_data[self.const_gss_info["URL"]], id_text=gss_row_data[self.const_gss_info["ID"]], pass_text=gss_row_data[self.const_gss_info["PASSWORD"]], gss_info=gss_info, err_datetime_cell=err_datetime_cell, err_cmt_cell=err_cmt_cell )
 
             # 【絞り込み条件】指定した条件に該当する読者を表示をクリック
-            self.click_element.clickElement(value=self.const_element["MATCH_RULES"])
+            self.click_element.clickElement(value=self.const_element["MATCH_RULES_VOL"])
             self.logger.warning(f'{self.__class__.__name__} 指定した条件に該当する読者を表示をクリック: 実施済み')
             self.selenium._random_sleep()
 
+            self.get_element.unlockDisplayNone()
+
+            try:
             # ドロップダウン → 配信基準日時（日付）→
-            self.get_element._select_element(by=self.const_element["MATCH_CHOICE_BY"], value=self.const_element["MATCH_CHOICE_VOL"], select_value=self.const_element["DELIVERY_SETTING_SELECT_OPTION_VALUE"])
+                self.get_element._select_element(by=self.const_element["MATCH_CHOICE_BY"], value=self.const_element["MATCH_CHOICE_VOL"], select_value=self.const_element["MATCH_CHOICE_SELECT_VOL"])
+            except Exception as e:
+                self.logger.error(f'{self.__class__.__name__} IDログインの処理中にエラーが発生: {e}')
+
             self.logger.warning(f'{self.__class__.__name__} 開始/再開を選択（ドロップダウン）: 実施済み')
             self.selenium._random_sleep()
 

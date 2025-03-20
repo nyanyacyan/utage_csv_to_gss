@@ -204,22 +204,18 @@ class SingleSiteIDLogin:
                     value=login_info["PASS_VALUE"],
                     inputText=pass_text,
                 )
-                try:
+
                 # クリックを繰り返しPOPUPがなくなるまで繰り返す
-                    self.clickLoginBtn( by=login_info["BTN_BY"], value=login_info["BTN_VALUE"])
-                except Exception as e:
-                    self.logger.error(f'{self.__class__.__name__} エラー発生: {e}')
+                self.clickLoginBtn( by=login_info["BTN_BY"], value=login_info["BTN_VALUE"])
 
                 # 検索ページなどが出てくる対策
                 # PCのスペックに合わせて設定
                 self.wait.jsPageChecker(chrome=self.chrome, timeout=10)
 
-                # reCAPTCHA対策を完了確認
-                return self.login_element_check(
-                    by=login_info["LOGIN_AFTER_ELEMENT_BY"],
-                    value=login_info["LOGIN_AFTER_ELEMENT_VALUE"],
-                    timeout=timeout,
-                )
+                    # reCAPTCHA対策を完了確認
+                bool = self.login_element_check( by=login_info["LOGIN_AFTER_ELEMENT_BY"], value=login_info["LOGIN_AFTER_ELEMENT_VALUE"], timeout=timeout, )
+
+                return bool
 
             except TimeoutError:
                 self.logger.critical(f'{self.__class__.__name__} エラー発生、リトライ実施: {retry_count + 1}/{max_count}')
@@ -227,6 +223,8 @@ class SingleSiteIDLogin:
                 self.chrome.refresh()
                 time.sleep(5)  # 少し待って再取得
 
+            except Exception as e:
+                self.logger.error(f'{self.__class__.__name__} IDログインの処理中にエラーが発生: {e}')
 
         # `max_count` に達した場合、エラーを記録
         self.logger.error(f'{self.__class__.__name__} 最大リトライ回数 {max_count} 回を超過。処理を中断')

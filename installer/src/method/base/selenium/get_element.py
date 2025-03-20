@@ -601,18 +601,29 @@ class GetElement:
 # 取得した要素から選択する
 
     def _select_element(self, value: str, select_value: str, by: str='xpath', on_text: bool=False):
-        # プルダウン系の要素を選択
-        element = self.getElement(by=by, value=value)
+        try:
+            # プルダウン系の要素を選択
+            element = self.getElement(by=by, value=value)
+            self.logger.debug(f'element: {element.text}')
+            self.logger.debug(f'element: {element.get_attribute("value")}')
 
-        # Selectで要素を定義
-        select_element = Select(element)
+            element.click()
 
-        if on_text:
-            select_element.select_by_visible_text(select_value)
-        else:
-            # 要素を特定する
-            select_element.select_by_value(select_value)
+            # Selectで要素を定義
+            select_element = Select(element)
 
+            option_list = select_element.options
+            op_text_list = [op.get_attribute('textContent') for op in option_list]
+            self.logger.debug(f'選択肢の一覧: {op_text_list}')
+
+            if on_text:
+                select_element.select_by_visible_text(select_value)
+            else:
+                # 要素を特定する
+                select_element.select_by_value(select_value)
+
+        except Exception as e:
+            self.logger.error(f'{self.__class__.__name__} _select_element 取得した要素を選択中にエラーが発生: {e}')
 
     # ----------------------------------------------------------------------------------
     # 特定の要素が無効化されているか確認
