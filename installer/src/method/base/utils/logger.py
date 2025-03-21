@@ -138,7 +138,7 @@ class Logger:
 # ----------------------------------------------------------------------------------
 # logsFileを取得
 
-    def toLogsPath(self, levelsUp: int = 4, dirName: str = 'resultOutput', subDirName: str = 'logs'):
+    def toLogsPath(self, levelsUp: int = 5, dirName: str = 'resultOutput', subDirName: str = 'logs'):
         resultOutputPath = self.getResultOutputPath(levelsUp=levelsUp, dirName=dirName)
 
         logsPath = resultOutputPath / subDirName / self.currentDate

@@ -1,6 +1,6 @@
 # coding: utf-8
 # $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-# export PYTHONPATH="/Users/nyanyacyan/Desktop/project_file/utage_csv_to_drive/installer/src"
+# export PYTHONPATH="/Users/nyanyacyan/Desktop/project_file/utage_csv_to_gss/installer/src"
 # export PYTHONPATH="/Users/nyanyacyan/Desktop/Project_file/utage_csv_to_drive/installer/src"
 
 # $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -10,7 +10,6 @@ import pandas as pd
 import concurrent.futures
 from typing import Dict
 from datetime import datetime, date, timedelta
-from selenium.common.exceptions import ElementClickInterceptedException, ElementNotInteractableException, NoSuchElementException, TimeoutException, WebDriverException
 
 # 自作モジュール
 from method.base.utils.logger import Logger
@@ -148,6 +147,7 @@ class SingleProcess:
         self.getLogger = Logger()
         self.logger = self.getLogger.getLogger()
         self.timestamp = datetime.now()
+        self.timestamp_two = self.timestamp.strftime("%Y-%m-%d %H:%M")
         self.date_only_stamp = self.timestamp.date().strftime("%m月%d日")
 
         # const
@@ -267,7 +267,7 @@ class SingleProcess:
 
             # 行ごとに処理
             for i, row in df_filtered.iterrows():
-                row_num = none_row_num + i
+                row_num = i + 1
                 get_gss_row_dict = row.to_dict()
 
                 # LINE友達IDのcell
@@ -296,7 +296,7 @@ class SingleProcess:
                 self.logger.info(f'LINE登録名: {get_gss_row_dict[self.const_gss_info["LINE_NAME"]]} スプシ書込完了')
 
             # 実施を成功欄に日付を書込をする
-            self.gss_write.write_data_by_url(gss_info, complete_cell, input_data=str(self.timestamp))
+            self.gss_write.write_data_by_url(gss_info, complete_cell, input_data=str(self.timestamp_two))
 
             self.logger.info(f'{gss_row_data[self.const_gss_info["NAME"]]}: 処理完了')
 
