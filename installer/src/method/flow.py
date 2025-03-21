@@ -5,11 +5,11 @@
 
 # $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 # import
-import os
+import os, time
 import pandas as pd
 import concurrent.futures
 from typing import Dict
-from datetime import datetime
+from datetime import datetime, date, timedelta
 from selenium.common.exceptions import ElementClickInterceptedException, ElementNotInteractableException, NoSuchElementException, TimeoutException, WebDriverException
 
 # 自作モジュール
@@ -148,7 +148,7 @@ class SingleProcess:
         self.getLogger = Logger()
         self.logger = self.getLogger.getLogger()
         self.timestamp = datetime.now()
-        self.date_only_stamp = self.timestamp.date()
+        self.date_only_stamp = self.timestamp.date().strftime("%m月%d日")
 
         # const
         self.const_gss_info = GssInfo.UTAGE.value
@@ -194,25 +194,30 @@ class SingleProcess:
 
             self.get_element.unlockDisplayNone()
 
-            try:
-            # ドロップダウン → 配信基準日時（日付）→
-                self.get_element._select_element(by=self.const_element["MATCH_CHOICE_BY"], value=self.const_element["MATCH_CHOICE_VOL"], select_value=self.const_element["MATCH_CHOICE_SELECT_VOL"])
-            except Exception as e:
-                self.logger.error(f'{self.__class__.__name__} IDログインの処理中にエラーが発生: {e}')
 
-            self.logger.warning(f'{self.__class__.__name__} 開始/再開を選択（ドロップダウン）: 実施済み')
+            # ドロップダウン → 配信基準日時（日付）→
+            self.get_element._select_element(by=self.const_element["MATCH_CHOICE_BY"], value=self.const_element["MATCH_CHOICE_VOL"], select_value=self.const_element["MATCH_CHOICE_SELECT_VOL"])
+            self.logger.warning(f'{self.__class__.__name__} 配信基準日時（日付）: 実施済み')
             self.selenium._random_sleep()
+
 
             # ドロップダウン 次と完全一致
-            self.get_element._select_element(by=self.const_element["DELIVERY_SETTING_SELECT_BY"], value=self.const_auto_reply["DELIVERY_SETTING_SELECT_VALUE"], select_value=self.const_element["MATCH_CHOICE_SELECT_VOL"])
-            self.logger.warning(f'{self.__class__.__name__} 開始/再開を選択（ドロップダウン）: 実施済み')
+            self.get_element._select_element(by=self.const_element["DELIVERY_SETTING_SELECT_BY"], value=self.const_element["DELIVERY_SETTING_SELECT_VALUE"], select_value=self.const_element["SETTING_SELECT_VALUE"])
+            self.logger.warning(f'{self.__class__.__name__} 次と完全一致（ドロップダウン）: 実施済み')
             self.selenium._random_sleep()
 
-            # 前日を入力 →
-            date_data = self.date_only_stamp
-            fixed_date_data = "00" + date_data
-            self.logger.debug(f'fixed_date_data: {fixed_date_data}')
-            self.click_element.clickClearInput(value=self.const_element["DATE_INPUT_VOL"], inputText=fixed_date_data)
+            # 絞り込みをクリック →
+            self.click_element.clickElement(value=self.const_element["SORTING_VOL"])
+            self.logger.warning(f'{self.__class__.__name__} 絞り込みをクリック: 実施済み')
+            self.selenium._random_sleep()
+
+            # 前日を入力
+            today = date.today()
+            yesterday = today - timedelta(days=1)
+            self.logger.debug(f'date_data: {yesterday}')
+            fixed_yesterday_data = "00" + str(yesterday)
+            self.logger.debug(f'fixed_date_data: {fixed_yesterday_data}')
+            self.click_element.clickClearInput(value=self.const_element["DATE_INPUT_VOL"], inputText=fixed_yesterday_data)
             self.logger.warning(f'{self.__class__.__name__} 日時の入力: 実施済み')
             self.selenium._random_sleep()
 
@@ -227,26 +232,38 @@ class SingleProcess:
             self.selenium._random_sleep()
 
             # CSV移動
-            csv_path = self.file_move.move_csv_dl_to_inputDir(sub_dir_name=self.const_element["CSV_OUTPUT_VOL"], file_name=gss_row_data["NAME"], extension=self.const_element["CSV_OUTPUT_VOL"])
+            csv_path = self.file_move.move_csv_dl_to_inputDir(sub_dir_name=gss_row_data[self.const_gss_info["NAME"]], file_name_head=self.const_element["CSV_FILE_NAME"], extension=self.const_element["CSV_EXTENSION"])
 
             # CSVの読み込み
-            download_csv_df = pd.read_csv(csv_path)
+            download_csv_df = pd.read_csv(csv_path, encoding="shift_jis")
             self.logger.debug(f'ダウンロードしたCSVのdf: {download_csv_df.head()}')
-            downloads_names_list = download_csv_df[self.const_gss_info["NAME"]]
+            downloads_names_list = download_csv_df[self.const_gss_info["LINE_FRIEND_ID"]].tolist()
+            self.logger.debug(f'downloads_names_list: {downloads_names_list}')
 
             # GSSへアクセス→gss_row_dataにあるURLへアクセス
-            gss_df = self.gss_read._get_gss_df_to_gui(gui_info=self.const_gss_info, sheet_url=self.const_gss_info["SHEET_URL"], worksheet_name=self.const_gss_info["NAME"])
-            gss_names_list = gss_df[self.const_gss_info["NAME"]]
+            worksheet_name = gss_row_data[self.const_gss_info["NAME"]]
+            self.logger.debug(f'worksheet_name: {worksheet_name}')
+            gss_df = self.gss_read._get_gss_df_to_gui(gui_info=self.const_gss_info, sheet_url=self.const_gss_info["SHEET_URL"], worksheet_name=worksheet_name)
+            if gss_df.empty:
+                self.logger.info("対象のスプレッドシートは空です。全データを書き込み対象とします。")
 
-            # CSVと既存との付け合せを行い差異リストを生成
-            diff_name_list = [name for name in downloads_names_list if name not in gss_names_list]
+                diff_name_list = downloads_names_list
+                none_row_num = 1  # ヘッダー行を除いた次の行
+            else:
+                gss_names_list = gss_df[self.const_gss_info["LINE_FRIEND_ID"]].tolist()
+                self.logger.debug(f'gss_names_list: \n{gss_names_list}')
 
-            # 空白の行数
-            none_row_num = self.gss_read._get_input_row_num(df=gss_df)
+                # CSVと既存との付け合せを行い差異リストを生成
+                diff_name_list = [name for name in downloads_names_list if name not in gss_names_list]
+                self.logger.debug(f'diff_name_list: {diff_name_list}')
+
+                # 空白の行数
+                none_row_num = self.gss_read._get_input_row_num(df=gss_df)
 
             # データフレームをフィルターかける（書き込むデータ飲みにする）
-            df_row_filtered = download_csv_df[download_csv_df[self.const_gss_info["NAME"]].isin(diff_name_list)]
+            df_row_filtered = download_csv_df[download_csv_df[self.const_gss_info["LINE_FRIEND_ID"]].isin(diff_name_list)]
             df_filtered = df_row_filtered[self.const_gss_info["CHOICE_COL"]]
+            self.logger.debug(f'必要な情報だけのDataFrame: {df_filtered.head()}')
 
             # 行ごとに処理
             for i, row in df_filtered.iterrows():
@@ -254,27 +271,32 @@ class SingleProcess:
                 get_gss_row_dict = row.to_dict()
 
                 # LINE友達IDのcell
-                friend_id_cell = self.select_cell.get_cell_address( gss_row_dict=get_gss_row_dict, col_name=complete_datetime_col_name, row_num=row_num, )
+                friend_id_cell = self.select_cell.get_cell_address( gss_row_dict=get_gss_row_dict, col_name=self.const_gss_info["LINE_FRIEND_ID"], row_num=row_num, )
 
                 # LINE登録名のcell
-                line_name_cell = self.select_cell.get_cell_address( gss_row_dict=get_gss_row_dict, col_name=err_datetime_col_name, row_num=row_num, )
+                line_name_cell = self.select_cell.get_cell_address( gss_row_dict=get_gss_row_dict, col_name=self.const_gss_info["LINE_NAME"], row_num=row_num, )
 
-                # 登録日にタイムスタンプのcell
-                date_cell = self.select_cell.get_cell_address( gss_row_dict=get_gss_row_dict, col_name=err_cmt_col_name, row_num=row_num, )
+                # 登録日にタイムスタンプのcell → Cにする → col_num=3
+                date_cell = self.select_cell.get_cell_address_add_col( col_num=3, col_name=self.const_gss_info["SIGN_UP_DATE"], row_num=row_num, )
 
                 # LINE友達IDの入力
-                self.gss_write.write_data_by_url(gss_info=self.const_gss_info, cell=friend_id_cell, input_data=get_gss_row_dict[""])
+                self.gss_write.write_gss_base_cell_address(gss_info=self.const_gss_info, sheet_url=self.const_gss_info["SHEET_URL"], worksheet_name=worksheet_name, cell_address=friend_id_cell, input_value=get_gss_row_dict[self.const_gss_info["LINE_FRIEND_ID"]])
+                time.sleep(1)
 
                 # LINE登録名を入力
-                self.gss_write.write_data_by_url(gss_info=self.const_gss_info, cell=line_name_cell, input_data=get_gss_row_dict[""])
+                self.gss_write.write_gss_base_cell_address(gss_info=self.const_gss_info, sheet_url=self.const_gss_info["SHEET_URL"], worksheet_name=worksheet_name, cell_address=line_name_cell, input_value=get_gss_row_dict[self.const_gss_info["LINE_NAME"]])
+                time.sleep(1)
 
-                # 登録日にタイムスタンプを入力
-                self.gss_write.write_data_by_url(gss_info=self.const_gss_info, cell=date_cell, input_data=self.date_only_stamp)
+                # 登録日にタイムスタンプを入力→C
+                self.logger.debug(f'date_cell: {date_cell}')
+                self.logger.debug(f'self.date_only_stamp: {self.date_only_stamp}')
+                self.gss_write.write_gss_base_cell_address(gss_info=self.const_gss_info, sheet_url=self.const_gss_info["SHEET_URL"], worksheet_name=worksheet_name, cell_address=date_cell, input_value=self.date_only_stamp)
+                time.sleep(1)
 
+                self.logger.info(f'LINE登録名: {get_gss_row_dict[self.const_gss_info["LINE_NAME"]]} スプシ書込完了')
 
             # 実施を成功欄に日付を書込をする
-            if result_bool:
-                self.gss_write.write_data_by_url(gss_info, complete_cell, input_data=str(self.timestamp))
+            self.gss_write.write_data_by_url(gss_info, complete_cell, input_data=str(self.timestamp))
 
             self.logger.info(f'{gss_row_data[self.const_gss_info["NAME"]]}: 処理完了')
 
@@ -288,8 +310,7 @@ class SingleProcess:
             self.gss_write.write_data_by_url(gss_info=gss_info, cell=err_cmt_cell, input_data=timeout_comment)
 
         except Exception as e:
-            timeout_comment = "ログインでreCAPTCHA処理にが長引いてしまったためエラー"
-            self.logger.error(f'{self.__class__.__name__} {timeout_comment}')
+            self.logger.error(f'{self.__class__.__name__} 処理中にエラーが発生 {e}')
             # エラータイムスタンプ
             self.gss_write.write_data_by_url(gss_info=gss_info, cell=err_datetime_cell, input_data=self.timestamp)
 

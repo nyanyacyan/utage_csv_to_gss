@@ -371,7 +371,7 @@ class GetDataGSSAPI:
     # データフレームの外（最初の空白）を算出
 
     def _get_input_row_num(self, df: pd.DataFrame):
-        none_row_num = len(df) + 2  # 2=index + next
+        none_row_num = len(df) + 1  # 2=index + next
         self.logger.debug(f'none_row_num: {none_row_num}')
         return none_row_num
 

@@ -38,7 +38,15 @@ class GssSelectCell:
         return cell_address
 
     ####################################################################################
+    # ✅ 行のcolumnからセルの列のアルファベットを出力
 
+    def get_cell_address_add_col(self, col_num: int, col_name: str, row_num: int):
+        col_letter = self._get_col_index_col_exists(col_num=col_num, col_name=col_name)
+        cell_address = f"{col_letter}{row_num + 1}"
+        self.logger.debug(f'指定のアドレス: {cell_address}')
+        return cell_address
+
+    ####################################################################################
     # ----------------------------------------------------------------------------------
     # 1始まりのカラム番号を Excel の A, B, C の形式に変換
     def _col_number_to_letter(self, col_num: int):
@@ -54,6 +62,14 @@ class GssSelectCell:
 
     def _get_col_index(self, gss_row_dict: Dict, col_name: str):
         col_num = list(gss_row_dict.keys()).index(col_name) + 1
+        col_letter = self._col_number_to_letter(col_num=col_num)
+        self.logger.debug(f'{col_name} は左から {col_num} 列目 ({col_letter}) にあります。')
+        return col_letter
+
+    # ----------------------------------------------------------------------------------
+    # 行のcolumnからセルの列のアルファベットを出力
+
+    def _get_col_index_col_exists(self, col_num: int, col_name: str):
         col_letter = self._col_number_to_letter(col_num=col_num)
         self.logger.debug(f'{col_name} は左から {col_num} 列目 ({col_letter}) にあります。')
         return col_letter

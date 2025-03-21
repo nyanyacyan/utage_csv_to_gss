@@ -98,7 +98,7 @@ class GssWrite:
     ####################################################################################
     # 行を指定して左から順番に値を入れる
 
-    def write_gss_base(self, gss_info: Dict, row_num: int, col_num: int, input_value: List):
+    def write_gss_base(self, gss_info: Dict, row_num: int, col_num: int, input_value: Any):
         try:
             client = self.client(jsonKeyName=gss_info["JSON_KEY_NAME"])
 
@@ -109,23 +109,32 @@ class GssWrite:
             select_worksheet.update_cell(row_num, col_num, value=input_value)
 
         except Exception as e:
-            self.logger.warning(f'{self.__class__.__name__} Worksheetを作成している際にエラーが発生: {e}')
+            self.logger.warning(f'{self.__class__.__name__} スプシへの書込でエラー発生: {e}')
 
     ####################################################################################
     #
 
-    def write_gss_base(self, gss_info: Dict, row_num: int, col_num: int, input_value: List):
+    def write_gss_base_cell_address(self, gss_info: Dict, sheet_url: str, worksheet_name: str, cell_address: Any, input_value: Any):
         try:
             client = self.client(jsonKeyName=gss_info["JSON_KEY_NAME"])
+            self.logger.debug(f'sheet_url: {sheet_url}')
+            self.logger.debug(f'worksheet_name: {worksheet_name}')
 
             # Worksheetを指定
-            select_worksheet = client.open_by_url(gss_info["SHEET_URL"]).worksheet(gss_info["WORKSHEET_NAME"])
+            select_worksheet = client.open_by_url(sheet_url).worksheet(worksheet_name)
+
+            # ✅ 1次元リストなら2次元リストに変換
+            if isinstance(input_value, list):
+                if not any(isinstance(i, list) for i in input_value):  # ネストされていなければ
+                    input_value = [input_value]
+            else:
+                input_value = [[input_value]]
 
             # 書込
-            select_worksheet.update_cell(row_num, col_num, value=input_value)
+            select_worksheet.update(cell_address, input_value)
 
         except Exception as e:
-            self.logger.warning(f'{self.__class__.__name__} Worksheetを作成している際にエラーが発生: {e}')
+            self.logger.warning(f'{self.__class__.__name__} スプシへの書込でエラー発生: {e}')
 
     ####################################################################################
 
