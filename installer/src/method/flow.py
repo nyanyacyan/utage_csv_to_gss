@@ -265,38 +265,42 @@ class SingleProcess:
             df_filtered = df_row_filtered[self.const_gss_info["CHOICE_COL"]]
             self.logger.debug(f'必要な情報だけのDataFrame: {df_filtered.head()}')
 
-            # 行ごとに処理
-            for i, row in df_filtered.iterrows():
-                row_num = i + 1
-                get_gss_row_dict = row.to_dict()
+            if not df_filtered.empty:
+                # 行ごとに処理
+                for i, row in df_filtered.iterrows():
+                    row_num = i + 1
+                    get_gss_row_dict = row.to_dict()
 
-                # LINE友達IDのcell
-                friend_id_cell = self.select_cell.get_cell_address( gss_row_dict=get_gss_row_dict, col_name=self.const_gss_info["LINE_FRIEND_ID"], row_num=row_num, )
+                    # LINE友達IDのcell
+                    friend_id_cell = self.select_cell.get_cell_address( gss_row_dict=get_gss_row_dict, col_name=self.const_gss_info["LINE_FRIEND_ID"], row_num=row_num, )
 
-                # LINE登録名のcell
-                line_name_cell = self.select_cell.get_cell_address( gss_row_dict=get_gss_row_dict, col_name=self.const_gss_info["LINE_NAME"], row_num=row_num, )
+                    # LINE登録名のcell
+                    line_name_cell = self.select_cell.get_cell_address( gss_row_dict=get_gss_row_dict, col_name=self.const_gss_info["LINE_NAME"], row_num=row_num, )
 
-                # 登録日にタイムスタンプのcell → Cにする → col_num=3
-                date_cell = self.select_cell.get_cell_address_add_col( col_num=3, col_name=self.const_gss_info["SIGN_UP_DATE"], row_num=row_num, )
+                    # 登録日にタイムスタンプのcell → Cにする → col_num=3
+                    date_cell = self.select_cell.get_cell_address_add_col( col_num=3, col_name=self.const_gss_info["SIGN_UP_DATE"], row_num=row_num, )
 
-                # LINE友達IDの入力
-                self.gss_write.write_gss_base_cell_address(gss_info=self.const_gss_info, sheet_url=self.const_gss_info["SHEET_URL"], worksheet_name=worksheet_name, cell_address=friend_id_cell, input_value=get_gss_row_dict[self.const_gss_info["LINE_FRIEND_ID"]])
-                time.sleep(1)
+                    # LINE友達IDの入力
+                    self.gss_write.write_gss_base_cell_address(gss_info=self.const_gss_info, sheet_url=self.const_gss_info["SHEET_URL"], worksheet_name=worksheet_name, cell_address=friend_id_cell, input_value=get_gss_row_dict[self.const_gss_info["LINE_FRIEND_ID"]])
+                    time.sleep(1)
 
-                # LINE登録名を入力
-                self.gss_write.write_gss_base_cell_address(gss_info=self.const_gss_info, sheet_url=self.const_gss_info["SHEET_URL"], worksheet_name=worksheet_name, cell_address=line_name_cell, input_value=get_gss_row_dict[self.const_gss_info["LINE_NAME"]])
-                time.sleep(1)
+                    # LINE登録名を入力
+                    self.gss_write.write_gss_base_cell_address(gss_info=self.const_gss_info, sheet_url=self.const_gss_info["SHEET_URL"], worksheet_name=worksheet_name, cell_address=line_name_cell, input_value=get_gss_row_dict[self.const_gss_info["LINE_NAME"]])
+                    time.sleep(1)
 
-                # 登録日にタイムスタンプを入力→C
-                self.logger.debug(f'date_cell: {date_cell}')
-                self.logger.debug(f'self.date_only_stamp: {self.date_only_stamp}')
-                self.gss_write.write_gss_base_cell_address(gss_info=self.const_gss_info, sheet_url=self.const_gss_info["SHEET_URL"], worksheet_name=worksheet_name, cell_address=date_cell, input_value=self.date_only_stamp)
-                time.sleep(1)
+                    # 登録日にタイムスタンプを入力→C
+                    self.logger.debug(f'date_cell: {date_cell}')
+                    self.logger.debug(f'self.date_only_stamp: {self.date_only_stamp}')
+                    self.gss_write.write_gss_base_cell_address(gss_info=self.const_gss_info, sheet_url=self.const_gss_info["SHEET_URL"], worksheet_name=worksheet_name, cell_address=date_cell, input_value=self.date_only_stamp)
+                    time.sleep(1)
 
-                self.logger.info(f'LINE登録名: {get_gss_row_dict[self.const_gss_info["LINE_NAME"]]} スプシ書込完了')
+                    self.logger.info(f'LINE登録名: {get_gss_row_dict[self.const_gss_info["LINE_NAME"]]} スプシ書込完了')
 
-            # 実施を成功欄に日付を書込をする
-            self.gss_write.write_data_by_url(gss_info, complete_cell, input_data=str(self.timestamp_two))
+                # 実施を成功欄に日付を書込をする
+                self.gss_write.write_data_by_url(gss_info, complete_cell, input_data=str(self.timestamp_two))
+
+            else:
+                self.logger.info(f'追加項目なし: {df_filtered}')
 
             self.logger.info(f'{gss_row_data[self.const_gss_info["NAME"]]}: 処理完了')
 
