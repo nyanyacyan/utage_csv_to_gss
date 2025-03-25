@@ -308,7 +308,7 @@ class SingleProcess:
             timeout_comment = "タイムエラー：ログインに失敗している可能性があります。"
             self.logger.error(f'{self.__class__.__name__} {timeout_comment}')
             # エラータイムスタンプ
-            self.gss_write.write_data_by_url(gss_info=gss_info, cell=err_datetime_cell, input_data=self.timestamp)
+            self.gss_write.write_data_by_url(gss_info=gss_info, cell=err_datetime_cell, input_data=self.timestamp_two)
 
             # エラーコメント
             self.gss_write.write_data_by_url(gss_info=gss_info, cell=err_cmt_cell, input_data=timeout_comment)
@@ -316,7 +316,7 @@ class SingleProcess:
         except Exception as e:
             self.logger.error(f'{self.__class__.__name__} 処理中にエラーが発生 {e}')
             # エラータイムスタンプ
-            self.gss_write.write_data_by_url(gss_info=gss_info, cell=err_datetime_cell, input_data=self.timestamp)
+            self.gss_write.write_data_by_url(gss_info=gss_info, cell=err_datetime_cell, input_data=self.timestamp_two)
 
             # エラーコメント
             self.gss_write.write_data_by_url(gss_info=gss_info, cell=err_cmt_cell, input_data=timeout_comment)
