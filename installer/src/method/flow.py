@@ -5,15 +5,16 @@
 
 # $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 # import
-import os, time
+import os, time, chardet
 import pandas as pd
 import concurrent.futures
 from typing import Dict
 from datetime import datetime, date, timedelta
+from selenium.common.exceptions import NoSuchElementException
 
 # 自作モジュール
 from method.base.utils.logger import Logger
-from method.base.selenium.chrome import ChromeManager
+from method.base.selenium.chrome import ChromeManager, UCChromeManager
 from method.base.selenium.loginWithId import SingleSiteIDLogin
 from method.base.selenium.seleniumBase import SeleniumBasicOperations
 from method.base.spreadsheet.spreadsheetRead import GetDataGSSAPI
@@ -161,12 +162,14 @@ class SingleProcess:
     # ----------------------------------------------------------------------------------
 
 
-    def _single_process(self, gss_row_data: Dict, gss_info: Dict, complete_cell: str, err_datetime_cell: str, err_cmt_cell: str, login_info: Dict):
+    def _single_process(self, gss_row_data: Dict, gss_info: Dict, complete_cell: str, err_datetime_cell: str, err_cmt_cell: str, login_info: Dict, max_retry: int = 3):
         """ 各プロセスを実行する """
 
         # ✅ Chrome の起動をここで行う
         self.chromeManager = ChromeManager()
         self.chrome = self.chromeManager.flowSetupChrome()
+
+        self.chrome.execute_cdp_cmd( "Page.addScriptToEvaluateOnNewDocument", { "source": """ Object.defineProperty(navigator, 'webdriver', { get: () => undefined }); """ }, )
 
         try:
             # インスタンスの作成 (chrome を引数に渡す)
@@ -187,39 +190,49 @@ class SingleProcess:
             # URLのアクセス→ID入力→Passの入力→ログイン
             self.login.flow_login_id_input_url( login_info=login_info, login_url=gss_row_data[self.const_gss_info["URL"]], id_text=gss_row_data[self.const_gss_info["ID"]], pass_text=gss_row_data[self.const_gss_info["PASSWORD"]], gss_info=gss_info, err_datetime_cell=err_datetime_cell, err_cmt_cell=err_cmt_cell )
 
+
+
             # 【絞り込み条件】指定した条件に該当する読者を表示をクリック
             self.click_element.clickElement(value=self.const_element["MATCH_RULES_VOL"])
             self.logger.warning(f'{self.__class__.__name__} 指定した条件に該当する読者を表示をクリック: 実施済み')
             self.selenium._random_sleep()
 
-            self.get_element.unlockDisplayNone()
+            for retry in range(max_retry):
+                try:
+                    self.get_element.unlockDisplayNone()
 
+                    # ドロップダウン → 配信基準日時（日付）→
+                    self.get_element._select_element(by=self.const_element["MATCH_CHOICE_BY"], value=self.const_element["MATCH_CHOICE_VOL"], select_value=self.const_element["MATCH_CHOICE_SELECT_VOL"])
+                    self.logger.warning(f'{self.__class__.__name__} 配信基準日時（日付）: 実施済み')
+                    self.selenium._random_sleep()
 
-            # ドロップダウン → 配信基準日時（日付）→
-            self.get_element._select_element(by=self.const_element["MATCH_CHOICE_BY"], value=self.const_element["MATCH_CHOICE_VOL"], select_value=self.const_element["MATCH_CHOICE_SELECT_VOL"])
-            self.logger.warning(f'{self.__class__.__name__} 配信基準日時（日付）: 実施済み')
-            self.selenium._random_sleep()
+                    # ドロップダウン 次と完全一致
+                    self.get_element._select_element(by=self.const_element["DELIVERY_SETTING_SELECT_BY"], value=self.const_element["DELIVERY_SETTING_SELECT_VALUE"], select_value=self.const_element["SETTING_SELECT_VALUE"])
+                    self.logger.warning(f'{self.__class__.__name__} 次と完全一致（ドロップダウン）: 実施済み')
+                    self.selenium._random_sleep()
 
+                    # # 絞り込みをクリック →
+                    self.click_element.clickElement(value=self.const_element["SORTING_VOL"])
+                    self.logger.warning(f'{self.__class__.__name__} 絞り込みをクリック: 実施済み')
+                    self.selenium._random_sleep()
 
-            # ドロップダウン 次と完全一致
-            self.get_element._select_element(by=self.const_element["DELIVERY_SETTING_SELECT_BY"], value=self.const_element["DELIVERY_SETTING_SELECT_VALUE"], select_value=self.const_element["SETTING_SELECT_VALUE"])
-            self.logger.warning(f'{self.__class__.__name__} 次と完全一致（ドロップダウン）: 実施済み')
-            self.selenium._random_sleep()
+                    # 前日を入力
+                    today = date.today()
+                    yesterday = today - timedelta(days=1)
+                    self.logger.debug(f'date_data: {yesterday}')
+                    fixed_yesterday_data = "00" + str(yesterday)
+                    self.logger.debug(f'fixed_date_data: {fixed_yesterday_data}')
+                    self.click_element.clickClearInput(value=self.const_element["DATE_INPUT_VOL"], inputText=fixed_yesterday_data)
+                    self.logger.warning(f'{self.__class__.__name__} 日時の入力: 実施済み')
+                    self.selenium._random_sleep()
+                    break  # 成功したらループ抜ける
 
-            # 絞り込みをクリック →
-            self.click_element.clickElement(value=self.const_element["SORTING_VOL"])
-            self.logger.warning(f'{self.__class__.__name__} 絞り込みをクリック: 実施済み')
-            self.selenium._random_sleep()
-
-            # 前日を入力
-            today = date.today()
-            yesterday = today - timedelta(days=1)
-            self.logger.debug(f'date_data: {yesterday}')
-            fixed_yesterday_data = "00" + str(yesterday)
-            self.logger.debug(f'fixed_date_data: {fixed_yesterday_data}')
-            self.click_element.clickClearInput(value=self.const_element["DATE_INPUT_VOL"], inputText=fixed_yesterday_data)
-            self.logger.warning(f'{self.__class__.__name__} 日時の入力: 実施済み')
-            self.selenium._random_sleep()
+                except NoSuchElementException as e:
+                    self.logger.warning(f'{self.__class__.__name__} ドロップダウンの選択に失敗: {e}')
+                    self.selenium._random_sleep()
+                    if retry == max_retry - 1:
+                        self.logger.error(f'{self.__class__.__name__} 最大リトライ回数に達しました: {e}')
+                        raise
 
             # 絞り込みをクリック →
             self.click_element.clickElement(value=self.const_element["SORTING_VOL"])
@@ -234,9 +247,9 @@ class SingleProcess:
             # CSV移動
             csv_path = self.file_move.move_csv_dl_to_inputDir(sub_dir_name=gss_row_data[self.const_gss_info["NAME"]], file_name_head=self.const_element["CSV_FILE_NAME"], extension=self.const_element["CSV_EXTENSION"])
 
+
             # CSVの読み込み
-            download_csv_df = pd.read_csv(csv_path, encoding="shift_jis")
-            self.logger.debug(f'ダウンロードしたCSVのdf: {download_csv_df.head()}')
+            download_csv_df = self._read_csv_with_encoding(file_path=csv_path)
             downloads_names_list = download_csv_df[self.const_gss_info["LINE_FRIEND_ID"]].tolist()
             self.logger.debug(f'downloads_names_list: {downloads_names_list}')
 
@@ -327,6 +340,18 @@ class SingleProcess:
             # ✅ Chrome を終了
             self.chrome.quit()
 
+    # ----------------------------------------------------------------------------------
+
+
+    def _read_csv_with_encoding(self, file_path: str) -> pd.DataFrame:
+        with open(file_path, 'rb') as file:
+            result = chardet.detect(file.read())
+            detected_encoding = result["encoding"]
+            self.logger.debug(f'判定されたエンコーディング: {detected_encoding}')
+
+        df = pd.read_csv(file_path, encoding=detected_encoding)
+        self.logger.debug(f'df: {df.head()}')
+        return df
 
     # ----------------------------------------------------------------------------------
 
