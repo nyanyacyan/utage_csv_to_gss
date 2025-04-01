@@ -10,7 +10,7 @@ import pandas as pd
 import concurrent.futures
 from typing import Dict
 from datetime import datetime, date, timedelta
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, ElementNotInteractableException
 
 # 自作モジュール
 from method.base.utils.logger import Logger
@@ -164,76 +164,89 @@ class SingleProcess:
 
     def _single_process(self, gss_row_data: Dict, gss_info: Dict, complete_cell: str, err_datetime_cell: str, err_cmt_cell: str, login_info: Dict, max_retry: int = 3):
         """ 各プロセスを実行する """
+        for retry in range(max_retry):
+            try:
+                # ✅ Chrome の起動をここで行う
+                self.chromeManager = ChromeManager()
+                self.chrome = self.chromeManager.flowSetupChrome()
 
-        # ✅ Chrome の起動をここで行う
-        self.chromeManager = ChromeManager()
-        self.chrome = self.chromeManager.flowSetupChrome()
+                self.chrome.execute_cdp_cmd( "Page.addScriptToEvaluateOnNewDocument", { "source": """ Object.defineProperty(navigator, 'webdriver', { get: () => undefined }); """ }, )
 
-        self.chrome.execute_cdp_cmd( "Page.addScriptToEvaluateOnNewDocument", { "source": """ Object.defineProperty(navigator, 'webdriver', { get: () => undefined }); """ }, )
+
+                # インスタンスの作成 (chrome を引数に渡す)
+                self.login = SingleSiteIDLogin(chrome=self.chrome)
+                self.random_sleep = SeleniumBasicOperations(chrome=self.chrome)
+                self.get_element = GetElement(chrome=self.chrome)
+                self.selenium = SeleniumBasicOperations(chrome=self.chrome)
+                self.gss_read = GetDataGSSAPI()
+                self.gss_write = GssWrite()
+                self.drive_download = GoogleDriveDownload()
+                self.select_cell = GssSelectCell()
+                self.gss_check_err_write = GssCheckerErrWrite()
+                self.popup = Popup()
+                self.click_element = ClickElement(chrome=self.chrome)
+                self.file_move = FileMove()
+
+
+                # URLのアクセス→ID入力→Passの入力→ログイン
+                self.login.flow_login_id_input_url( login_info=login_info, login_url=gss_row_data[self.const_gss_info["URL"]], id_text=gss_row_data[self.const_gss_info["ID"]], pass_text=gss_row_data[self.const_gss_info["PASSWORD"]], gss_info=gss_info, err_datetime_cell=err_datetime_cell, err_cmt_cell=err_cmt_cell )
+
+                # 【絞り込み条件】指定した条件に該当する読者を表示をクリック
+                self.click_element.clickElement(value=self.const_element["MATCH_RULES_VOL"])
+                self.logger.warning(f'{self.__class__.__name__} 指定した条件に該当する読者を表示をクリック: 実施済み')
+                self.selenium._random_sleep()
+
+
+                self.get_element.unlockDisplayNone()
+
+                # ドロップダウン → 配信基準日時（日付）→
+                self.get_element._select_element(by=self.const_element["MATCH_CHOICE_BY"], value=self.const_element["MATCH_CHOICE_VOL"], select_value=self.const_element["MATCH_CHOICE_SELECT_VOL"])
+                self.logger.warning(f'{self.__class__.__name__} 配信基準日時（日付）: 実施済み')
+                self.selenium._random_sleep()
+
+                # ドロップダウン 次と完全一致
+                self.get_element._select_element(by=self.const_element["DELIVERY_SETTING_SELECT_BY"], value=self.const_element["DELIVERY_SETTING_SELECT_VALUE"], select_value=self.const_element["SETTING_SELECT_VALUE"])
+                self.logger.warning(f'{self.__class__.__name__} 次と完全一致（ドロップダウン）: 実施済み')
+                self.selenium._random_sleep()
+
+                # # 絞り込みをクリック →
+                self.click_element.clickElement(value=self.const_element["SORTING_VOL"])
+                self.logger.warning(f'{self.__class__.__name__} 絞り込みをクリック: 実施済み')
+                self.selenium._random_sleep()
+
+                # 前日を入力
+                today = date.today()
+                yesterday = today - timedelta(days=1)
+                self.logger.debug(f'date_data: {yesterday}')
+                fixed_yesterday_data = "00" + str(yesterday)
+                self.logger.debug(f'fixed_date_data: {fixed_yesterday_data}')
+                self.click_element.clickClearInput(value=self.const_element["DATE_INPUT_VOL"], inputText=fixed_yesterday_data)
+                self.logger.warning(f'{self.__class__.__name__} 日時の入力: 実施済み')
+                self.selenium._random_sleep()
+                break  # 成功したらループ抜ける
+
+            except ElementNotInteractableException:
+                gss_url_error_comment = self.const_err_cmt_dict["GSS_URL_ERROR"]
+                self.logger.error(gss_url_error_comment)
+
+                # エラータイムスタンプ
+                self.gss_write.write_data_by_url(gss_info=gss_info, cell=err_datetime_cell, input_data=self.timestamp_two)
+                # エラーコメント
+                self.gss_write.write_data_by_url(gss_info=gss_info, cell=err_cmt_cell, input_data=gss_url_error_comment)
+                return
+
+
+            except NoSuchElementException as e:
+                self.logger.warning(f'{self.__class__.__name__} ドロップダウンの選択に失敗: {e}')
+                self.chrome.quit()
+                self.logger.warning(f'{self.__class__.__name__} Chromeを終了')
+                self.logger.warning(f'{self.__class__.__name__} リトライ: {retry + 1}/{max_retry}')  # リトライのためにChromeを再起動
+                self.selenium._random_sleep()
+                if retry == max_retry - 1:
+                    self.logger.error(f'{self.__class__.__name__} 最大リトライ回数に達しました: {e}')
+                    raise
 
         try:
-            # インスタンスの作成 (chrome を引数に渡す)
-            self.login = SingleSiteIDLogin(chrome=self.chrome)
-            self.random_sleep = SeleniumBasicOperations(chrome=self.chrome)
-            self.get_element = GetElement(chrome=self.chrome)
-            self.selenium = SeleniumBasicOperations(chrome=self.chrome)
-            self.gss_read = GetDataGSSAPI()
-            self.gss_write = GssWrite()
-            self.drive_download = GoogleDriveDownload()
-            self.select_cell = GssSelectCell()
-            self.gss_check_err_write = GssCheckerErrWrite()
-            self.popup = Popup()
-            self.click_element = ClickElement(chrome=self.chrome)
-            self.file_move = FileMove()
-
-
-            # URLのアクセス→ID入力→Passの入力→ログイン
-            self.login.flow_login_id_input_url( login_info=login_info, login_url=gss_row_data[self.const_gss_info["URL"]], id_text=gss_row_data[self.const_gss_info["ID"]], pass_text=gss_row_data[self.const_gss_info["PASSWORD"]], gss_info=gss_info, err_datetime_cell=err_datetime_cell, err_cmt_cell=err_cmt_cell )
-
-
-
-            # 【絞り込み条件】指定した条件に該当する読者を表示をクリック
-            self.click_element.clickElement(value=self.const_element["MATCH_RULES_VOL"])
-            self.logger.warning(f'{self.__class__.__name__} 指定した条件に該当する読者を表示をクリック: 実施済み')
-            self.selenium._random_sleep()
-
-            for retry in range(max_retry):
-                try:
-                    self.get_element.unlockDisplayNone()
-
-                    # ドロップダウン → 配信基準日時（日付）→
-                    self.get_element._select_element(by=self.const_element["MATCH_CHOICE_BY"], value=self.const_element["MATCH_CHOICE_VOL"], select_value=self.const_element["MATCH_CHOICE_SELECT_VOL"])
-                    self.logger.warning(f'{self.__class__.__name__} 配信基準日時（日付）: 実施済み')
-                    self.selenium._random_sleep()
-
-                    # ドロップダウン 次と完全一致
-                    self.get_element._select_element(by=self.const_element["DELIVERY_SETTING_SELECT_BY"], value=self.const_element["DELIVERY_SETTING_SELECT_VALUE"], select_value=self.const_element["SETTING_SELECT_VALUE"])
-                    self.logger.warning(f'{self.__class__.__name__} 次と完全一致（ドロップダウン）: 実施済み')
-                    self.selenium._random_sleep()
-
-                    # # 絞り込みをクリック →
-                    self.click_element.clickElement(value=self.const_element["SORTING_VOL"])
-                    self.logger.warning(f'{self.__class__.__name__} 絞り込みをクリック: 実施済み')
-                    self.selenium._random_sleep()
-
-                    # 前日を入力
-                    today = date.today()
-                    yesterday = today - timedelta(days=1)
-                    self.logger.debug(f'date_data: {yesterday}')
-                    fixed_yesterday_data = "00" + str(yesterday)
-                    self.logger.debug(f'fixed_date_data: {fixed_yesterday_data}')
-                    self.click_element.clickClearInput(value=self.const_element["DATE_INPUT_VOL"], inputText=fixed_yesterday_data)
-                    self.logger.warning(f'{self.__class__.__name__} 日時の入力: 実施済み')
-                    self.selenium._random_sleep()
-                    break  # 成功したらループ抜ける
-
-                except NoSuchElementException as e:
-                    self.logger.warning(f'{self.__class__.__name__} ドロップダウンの選択に失敗: {e}')
-                    self.selenium._random_sleep()
-                    if retry == max_retry - 1:
-                        self.logger.error(f'{self.__class__.__name__} 最大リトライ回数に達しました: {e}')
-                        raise
-
             # 絞り込みをクリック →
             self.click_element.clickElement(value=self.const_element["SORTING_VOL"])
             self.logger.warning(f'{self.__class__.__name__} 絞り込みをクリック: 実施済み')

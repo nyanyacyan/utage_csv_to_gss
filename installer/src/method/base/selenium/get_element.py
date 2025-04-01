@@ -604,23 +604,48 @@ class GetElement:
         try:
             # プルダウン系の要素を選択
             element = self.getElement(by=by, value=value)
-            self.logger.debug(f'element: {element.text}')
+            self.logger.debug(f'element: {element}')
+            self.logger.debug(f'element.text: \n{element.text}')
             self.logger.debug(f'element: {element.get_attribute("value")}')
 
-            element.click()
+            # element.click()
 
             # Selectで要素を定義
             select_element = Select(element)
 
+            html_log = element.get_attribute('outerHTML')
+            self.logger.debug(f'HTML: \n{html_log}')
             option_list = select_element.options
             op_text_list = [op.get_attribute('textContent') for op in option_list]
-            self.logger.debug(f'選択肢の一覧: {op_text_list}')
+            self.logger.debug(f'選択肢の一覧: \n{op_text_list}')
 
             if on_text:
-                select_element.select_by_visible_text(select_value)
+                # select_element.select_by_visible_text(select_value)
+                for option in option_list:
+                    if option.get_attribute('value') == select_value:
+                        option.click()
+                        break
             else:
                 # 要素を特定する
-                select_element.select_by_value(select_value)
+                # select_element.select_by_value(select_value)
+                for option in option_list:
+                    if option.get_attribute('value') == select_value:
+                        option.click()
+                        # JSでvalueを設定してからchangeイベントを発火
+                        self.chrome.execute_script("""
+                            const select = arguments[0];
+                            select.dispatchEvent(new Event('change', { bubbles: true }));
+                        """, element)
+                        break
+
+            selected_option = select_element.first_selected_option
+            self.logger.debug(f'現在選択中の値: {selected_option.text}')
+
+        except ElementNotInteractableException:
+            self.logger.debug(f"⚠️ 要素は見つかったけど、操作できません！: {element}")
+            html_log = element.get_attribute('outerHTML')
+            self.logger.debug(f"⚠️ 要素のHTML: \n{html_log}")
+            raise
 
         except Exception as e:
             self.logger.error(f'{self.__class__.__name__} _select_element 取得した要素を選択中にエラーが発生: {e}')
