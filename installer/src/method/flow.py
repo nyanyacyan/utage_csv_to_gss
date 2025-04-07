@@ -285,6 +285,7 @@ class SingleProcess:
 
                 # 空白の行数
                 none_row_num = self.gss_read._get_input_row_num(df=gss_df)
+                self.logger.debug(f'none_row_num: {none_row_num}')
 
             # データフレームをフィルターかける（書き込むデータ飲みにする）
             df_row_filtered = download_csv_df[download_csv_df[self.const_gss_info["LINE_FRIEND_ID"]].isin(diff_name_list)]
@@ -295,6 +296,7 @@ class SingleProcess:
                 # 行ごとに処理
                 for i, row in df_filtered.iterrows():
                     row_num = i + 1
+                    self.logger.debug(f'row_num: {row_num}')
                     get_gss_row_dict = row.to_dict()
 
                     # LINE友達IDのcell
