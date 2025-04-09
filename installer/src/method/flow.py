@@ -295,7 +295,7 @@ class SingleProcess:
             if not df_filtered.empty:
                 # 行ごとに処理
                 for i, row in df_filtered.iterrows():
-                    row_num = i + 1
+                    row_num = i + none_row_num
                     self.logger.debug(f'row_num: {row_num}')
                     get_gss_row_dict = row.to_dict()
 
